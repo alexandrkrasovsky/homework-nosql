@@ -4,6 +4,12 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.Instant;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.IntStream;
+import java.util.stream.LongStream;
+import java.util.stream.Stream;
+
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
@@ -22,15 +28,28 @@ public class RateLimiter {
   }
 
   public boolean pass() {
-    // TODO: Implementation
-    return false;
+    var lastRequestsTime = 
+      Stream.generate(() -> redis.lpop(label))
+        .takeWhile(val -> Objects.nonNull(val))
+        .limit(maxRequestCount)
+        .map(listValue -> Instant.parse(listValue))
+        .filter(instant -> instant.isAfter(Instant.ofEpochMilli(Instant.now().toEpochMilli() - timeWindowSeconds * 1_000)))
+        .toList();
+    //хотел сделать через .peek() но не придумал как
+    lastRequestsTime.forEach(requestTime -> redis.lpush(label, requestTime.toString()));
+    if(lastRequestsTime.size() < maxRequestCount) {
+      redis.lpush(label, Instant.now().toString());
+      return true;
+    } else {
+      return false;
+    }
   }
 
   public static void main(String[] args) {
     JedisPool pool = new JedisPool("localhost", 6379);
 
     try (Jedis redis = pool.getResource()) {
-      RateLimiter rateLimiter = new RateLimiter(redis, "pr_rate", 1, 1);
+      RateLimiter rateLimiter = new RateLimiter(redis, "pr_rate", 3, 1);
 
       BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
       long prev = Instant.now().toEpochMilli();
