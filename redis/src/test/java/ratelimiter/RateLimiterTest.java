@@ -15,7 +15,7 @@ public class RateLimiterTest {
 
   @BeforeAll
   static void setUp() {
-    pool = new JedisPool("localhost", 6379);
+    pool = new JedisPool("localhost", 9041);
     redis = pool.getResource();
   }
 

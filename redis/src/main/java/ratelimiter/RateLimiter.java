@@ -4,8 +4,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.Instant;
+
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.Transaction;
+import redis.clients.jedis.args.ExpiryOption;
 
 public class RateLimiter {
 
@@ -22,15 +25,23 @@ public class RateLimiter {
   }
 
   public boolean pass() {
-    // TODO: Implementation
-    return false;
+    long now = Instant.now().toEpochMilli();
+    long windowStart = now - timeWindowSeconds * 1000;
+    long requestsCount = redis.zcount(label, windowStart, now);
+    if (requestsCount < maxRequestCount) {
+      redis.zadd(label, now, Long.toString(now));
+      redis.expire(label, timeWindowSeconds);
+      return true;
+    } else {
+      return false;
+    }
   }
 
   public static void main(String[] args) {
-    JedisPool pool = new JedisPool("localhost", 6379);
+    JedisPool pool = new JedisPool("localhost", 9041);
 
     try (Jedis redis = pool.getResource()) {
-      RateLimiter rateLimiter = new RateLimiter(redis, "pr_rate", 1, 1);
+      RateLimiter rateLimiter = new RateLimiter(redis, "pr_rate", 5, 50);
 
       BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
       long prev = Instant.now().toEpochMilli();
