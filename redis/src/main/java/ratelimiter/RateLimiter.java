@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.Instant;
+import java.util.Date;
+
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
@@ -22,9 +24,22 @@ public class RateLimiter {
   }
 
   public boolean pass() {
-    // TODO: Implementation
-    return false;
-  }
+
+    // https://redis.com/glossary/rate-limiting/ - методичка
+
+    long currentTime = System.currentTimeMillis();
+    long latestTime = currentTime - timeWindowSeconds*1000;
+    redis.zremrangeByScore(label, 0, latestTime);
+
+      if (redis.zcard(label) < maxRequestCount) {
+        redis.zadd(label, currentTime, String.valueOf(currentTime) );
+        return true;
+      }
+      return false;
+
+    }
+
+
 
   public static void main(String[] args) {
     JedisPool pool = new JedisPool("localhost", 6379);
