@@ -1,11 +1,12 @@
 package ratelimiter;
 
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.Instant;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
 
 public class RateLimiter {
 
@@ -22,7 +23,13 @@ public class RateLimiter {
   }
 
   public boolean pass() {
-    // TODO: Implementation
+    long now = Instant.now().toEpochMilli();
+    long windowStart = now - timeWindowSeconds * 1000;
+    long count = redis.zcount(label, windowStart, now);
+    if (count < maxRequestCount) {
+      redis.zadd(label, now, String.valueOf(now));
+      return true;
+    }
     return false;
   }
 

@@ -1,6 +1,6 @@
-create keyspace my_ks with replication = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };
+create keyspace if not exists my_ks with replication = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };
 use my_ks;
-create table my_ks.posts
+create table if not exists posts
 (
     user_id    INT,
     username   VARCHAR,
@@ -12,7 +12,7 @@ create table my_ks.posts
     PRIMARY KEY (user_id, created_at)
 ) with clustering order by (created_at DESC);
 
-create table my_ks.topic_posts
+create table if not exists topic_posts
 (
     user_id    INT,
     username   VARCHAR,
@@ -39,19 +39,19 @@ VALUES (2, 'username2', 'email2', 2, 2, 'content2', '2022-01-02 00:00:00', '2022
 INSERT INTO topic_posts (user_id, username, email, post_id, topic_id, content, created_at, date)
 VALUES (3, 'username3', 'email3', 3, 3, 'content3', '2022-01-03 00:00:00', '2022-01-03');
 
-select post_id, content, created_at
-from posts
-where user_id = 1;
+SELECT post_id, content, created_at
+FROM posts
+WHERE user_id = 1;
 
-select post_id, content, created_at, username
-from posts
-where user_id = 1
-limit 1;
+SELECT post_id, content, created_at, username
+FROM posts
+WHERE user_id = 1
+LIMIT 1;
 
-select post_id, content, created_at
-from posts
-where user_id = 1
-  and created_at > '2021-01-01 00:00:00';
+SELECT post_id, content, created_at
+FROM posts
+WHERE user_id = 1
+  AND created_at > '2021-01-01 00:00:00';
 
 SELECT user_id, username, post_id, created_at
 FROM topic_posts
